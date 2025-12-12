@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>認字遊戲（K2/K3/小一）</title>
+  <style>
+    body{font-family:system-ui,-apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;margin:0;background:#f6f7fb}
+    .wrap{max-width:720px;margin:0 auto;padding:18px}
+    .card{background:#fff;border-radius:14px;padding:16px;box-shadow:0 6px 18px rgba(0,0,0,.06)}
+    h1{font-size:18px;margin:0 0 10px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    select,button{font-size:16px;padding:10px 12px;border-radius:10px;border:1px solid #d6d9e0;background:#fff}
+    button{cursor:pointer}
+    button.primary{background:#1f6feb;border-color:#1f6feb;color:#fff}
+    button.good{background:#1a7f37;border-color:#1a7f37;color:#fff}
+    button.bad{background:#cf222e;border-color:#cf222e;color:#fff}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    .status{margin-top:10px;color:#555;font-size:14px}
+    .wordBox{margin:14px 0 10px;text-align:center;padding:18px;border:1px dashed #c7cbd6;border-radius:14px;background:#fbfcff}
+    .word{font-size:54px;letter-spacing:2px;line-height:1.2}
+    .sub{font-size:14px;color:#666;margin-top:6px}
+    .footer{margin-top:12px;font-size:12px;color:#777}
+    .hide{display:none}
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>認字遊戲（20題／逐題評分）</h1>
+
+      <div class="row">
+        <label>
+          程度：
+          <select id="level">
+            <option value="K2">K2</option>
+            <option value="K3" selected>K3</option>
+            <option value="P1">小一</option>
+          </select>
+        </label>
+
+        <button id="startBtn" class="primary">開始</button>
+        <button id="resetBtn">重設</button>
+      </div>
+
+      <div id="gameArea" class="hide">
+        <div class="status" id="statusLine">第 1 / 20 題</div>
+
+        <div class="wordBox">
+          <div class="word" id="currentWord">—</div>
+          <div class="sub">家長聽小朋友讀，再按 ✔（讀啱）或 ✘（讀錯）</div>
+        </div>
+
+        <div class="row">
+          <button id="correctBtn" class="good">✔ 讀啱</button>
+          <button id="wrongBtn" class="bad">✘ 讀錯</button>
+        </div>
+
+        <div class="status" id="scoreLine">目前得分：0</div>
+      </div>
+
+      <div id="resultArea" class="hide">
+        <div class="wordBox">
+          <div class="word" style="font-size:36px;">完成！</div>
+          <div class="sub" id="finalLine">總分：0 / 20</div>
+        </div>
+
+        <div class="row">
+          <button id="playAgainBtn" class="primary">再玩一次</button>
+        </div>
+      </div>
+
+      <div class="footer">
+        可自行修改字庫（見程式最下面 WORD_BANK）。
+      </div>
+    </div>
+  </div>
+
+<script>
+  // ===== 字庫：可自行增減 =====
+  const WORD_BANK = {
+    K2: [
+      "我","你","家","爸爸","媽媽","老師","同學","學校","書","筆",
+      "水","飯","手","眼","口","上","下","大","小","看",
+      "玩","來","去","門","車","人","好","多","少","床"
+    ],
+    K3: [
+      "自己","同學","老師","學校","書包","鉛筆","橡皮","請問","謝謝","對不起",
+      "洗手","刷牙","吃飯","喝水","睡覺","起床","走路","跑步","排隊","收拾",
+      "幫忙","分享","小心","安全","今天","明天","早上","晚上","左邊","右邊"
+    ],
+    P1: [
+      "因為","所以","但是","如果","已經","一起","然後","可以","需要","應該",
+      "開始","完成","問題","方法","比較","同樣","不同","地方","時間","記得",
+      "小心","安全","清潔","明白","知道","努力","認真","遵守","安靜","排隊"
+    ]
+  };
+
+  const TOTAL = 20;
+  let questions = [];
+  let idx = 0;
+  let score = 0;
+  let activeLevel = "K3";
+
+  function shuffle(arr){
+    const a = arr.slice();
+    for(let i=a.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function pick20(level){
+    const bank = [...new Set(WORD_BANK[level] || [])];
+    const shuffled = shuffle(bank);
+    const out = [];
+    while(out.length < TOTAL){
+      for(const w of shuffled){
+        out.push(w);
+        if(out.length === TOTAL) break;
+      }
+    }
+    return out;
+  }
+
+  function show(id){ document.getElementById(id).classList.remove("hide"); }
+  function hide(id){ document.getElementById(id).classList.add("hide"); }
+
+  function render(){
+    document.getElementById("statusLine").textContent = `第 ${idx+1} / ${TOTAL} 題`;
+    document.getElementById("scoreLine").textContent = `目前得分：${score}`;
+    document.getElementById("currentWord").textContent = questions[idx] || "—";
+  }
+
+  function start(level){
+    activeLevel = level;
+    questions = pick20(level);
+    idx = 0;
+    score = 0;
+    hide("resultArea");
+    show("gameArea");
+    render();
+  }
+
+  function finish(){
+    hide("gameArea");
+    document.getElementById("finalLine").textContent = `總分：${score} / ${TOTAL}`;
+    show("resultArea");
+  }
+
+  function mark(isCorrect){
+    if(isCorrect) score += 1;
+    idx += 1;
+    if(idx >= TOTAL) finish();
+    else render();
+  }
+
+  document.getElementById("startBtn").addEventListener("click", () => {
+    start(document.getElementById("level").value);
+  });
+
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    hide("gameArea");
+    hide("resultArea");
+  });
+
+  document.getElementById("playAgainBtn").addEventListener("click", () => {
+    start(activeLevel);
+  });
+
+  document.getElementById("correctBtn").addEventListener("click", () => mark(true));
+  document.getElementById("wrongBtn").addEventListener("click", () => mark(false));
+</script>
+</body>
+</html>
